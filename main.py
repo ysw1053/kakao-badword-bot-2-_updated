@@ -6,16 +6,12 @@ app = FastAPI()
 
 BAD_WORDS = ["씨발", "시발", "ㅅㅂ", "병신", "지랄", "좆"]
 
-
 _RE_KEEP = re.compile(r"[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]+")
-_RE_REPEAT = re.compile(r"(.)\1{2,}")  
 
 def basic_clean(s: str) -> str:
     s = s.lower()
-    s = _RE_KEEP.sub("", s)           
-    s = _RE_REPEAT.sub(r"\1\1", s)    
+    s = _RE_KEEP.sub("", s)
     return s
-
 
 HANGUL_BASE = 0xAC00
 HANGUL_END  = 0xD7A3
@@ -25,18 +21,18 @@ JUNGSUNG_LIST = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ
 JONGSUNG_LIST = "\0ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ"
 
 ENG2JAMO = {
-    # 자음
     'r':'ㄱ','R':'ㄲ','s':'ㄴ','e':'ㄷ','E':'ㄸ','f':'ㄹ','a':'ㅁ','q':'ㅂ','Q':'ㅃ',
     't':'ㅅ','T':'ㅆ','d':'ㅇ','w':'ㅈ','W':'ㅉ','c':'ㅊ','z':'ㅋ','x':'ㅌ','v':'ㅍ','g':'ㅎ',
-    # 모음
     'k':'ㅏ','o':'ㅐ','i':'ㅑ','O':'ㅒ','j':'ㅓ','p':'ㅔ','u':'ㅕ','P':'ㅖ','h':'ㅗ',
     'y':'ㅛ','n':'ㅜ','b':'ㅠ','m':'ㅡ','l':'ㅣ',
 }
+
 VOWEL_COMB = {
     ('ㅗ','ㅏ'):'ㅘ', ('ㅗ','ㅐ'):'ㅙ', ('ㅗ','ㅣ'):'ㅚ',
     ('ㅜ','ㅓ'):'ㅝ', ('ㅜ','ㅔ'):'ㅞ', ('ㅜ','ㅣ'):'ㅟ',
     ('ㅡ','ㅣ'):'ㅢ',
 }
+
 JONG_COMB = {
     ('ㄱ','ㅅ'):'ㄳ', ('ㄴ','ㅈ'):'ㄵ', ('ㄴ','ㅎ'):'ㄶ',
     ('ㄹ','ㄱ'):'ㄺ', ('ㄹ','ㅁ'):'ㄻ', ('ㄹ','ㅂ'):'ㄼ',
@@ -60,10 +56,7 @@ def compose_hangul(cho, jung, jong=None):
     return chr(HANGUL_BASE + 588*cho_i + 28*jung_i + jong_i)
 
 def eng_to_kor(s: str) -> str:
-    jamos = []
-    for ch in s:
-        jamos.append(ENG2JAMO.get(ch, ch))
-
+    jamos = [ENG2JAMO.get(ch, ch) for ch in s]
     out = []
     cho = jung = jong = None
 
@@ -123,7 +116,6 @@ def eng_to_kor(s: str) -> str:
     flush()
     return "".join(out)
 
-
 def decompose_hangul(text: str) -> str:
     out = []
     for ch in text:
@@ -140,25 +132,22 @@ def decompose_hangul(text: str) -> str:
             out.append(JONGSUNG_LIST[jong])
     return "".join(out)
 
-
-CANON_MAP = {
-    # 예시(원하면 지워도 됨):
-    # "ㅆ": "ㅅ",
-    # "ㄲ": "ㄱ",
-    # "ㅐ": "ㅔ",
-}
+CANON_MAP = {"ㅐ": "ㅔ", 
+             "ㅣ": "ㅡ", 
+             "ㅏ": "ㅓ", 
+             "ㅗ": "ㅏ", 
+             "ㅅ": "ㅇ", 
+             "ㅕ": "ㅠ"}
 
 def canonize(text: str) -> str:
     return "".join(CANON_MAP.get(ch, ch) for ch in text)
 
 def generate_forms(raw: str) -> set[str]:
     t0 = basic_clean(raw)
-    t1 = leet_normalize(t0)
-
-    t2 = basic_clean(eng_to_kor(t0))
+    t1 = basic_clean(eng_to_kor(t0))
 
     forms = set()
-    for t in (t0, t1, t2):
+    for t in (t0, t1):
         forms.add(t)
         j = decompose_hangul(t)
         forms.add(j)
@@ -177,7 +166,6 @@ BAD_FORMS = build_bad_forms(BAD_WORDS)
 
 def detect(message: str) -> bool:
     forms = generate_forms(message)
-  
     for form in forms:
         for bw in BAD_FORMS:
             if bw in form:
@@ -190,9 +178,7 @@ class KakaoRequest(BaseModel):
 @app.post("/skill")
 def detect_badword(req: KakaoRequest):
     utter = req.userRequest.get("utterance", "")
-    detected = detect(utter)
-
-    if detected:
+    if detect(utter):
         return {
             "version": "2.0",
             "template": {
