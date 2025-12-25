@@ -1,11 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import re
-
 app = FastAPI()
-
 BAD_WORDS = ["씨발", "시발", "ㅅㅂ", "병신", "지랄", "좆"]
-
 _RE_KEEP = re.compile(r"[^0-9a-zA-Z가-힣ㄱ-ㅎㅏ-ㅣ]+")
 
 def basic_clean(s: str) -> str:
@@ -15,7 +12,6 @@ def basic_clean(s: str) -> str:
 
 HANGUL_BASE = 0xAC00
 HANGUL_END  = 0xD7A3
-
 CHOSUNG_LIST = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"
 JUNGSUNG_LIST = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ"
 JONGSUNG_LIST = "\0ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ"
@@ -73,13 +69,11 @@ def eng_to_kor(s: str) -> str:
     i = 0
     while i < len(jamos):
         cur = jamos[i]
-
         if cur not in CHO_SET and cur not in JUNG_SET and cur not in JONG_SET:
             flush()
             out.append(cur)
             i += 1
             continue
-
         if cur in JUNG_SET:
             if cho is None:
                 flush()
@@ -95,7 +89,6 @@ def eng_to_kor(s: str) -> str:
                     out.append(cur)
             i += 1
             continue
-
         if cho is None:
             cho = cur
         elif jung is None:
@@ -115,7 +108,7 @@ def eng_to_kor(s: str) -> str:
 
     flush()
     return "".join(out)
-
+    
 def decompose_hangul(text: str) -> str:
     out = []
     for ch in text:
@@ -171,7 +164,7 @@ def detect(message: str) -> bool:
             if bw in form:
                 return True
     return False
-
+    
 class KakaoRequest(BaseModel):
     userRequest: dict
 
